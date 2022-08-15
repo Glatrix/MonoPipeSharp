@@ -2,6 +2,8 @@ Credit to Dark Byte, and Cheat Engine for the MonoDataCollector dlls.
 
 (You must have Cheat Engine installed for this program to work :P)
 
+This project is a work in progress. Feel free to make a pull request if you have anything to add.
+
 # MonoPipeSharp
 C# Implimentation for Cheat Engine's MonoDataCollector
 
