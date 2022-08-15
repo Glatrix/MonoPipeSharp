@@ -22,7 +22,7 @@ namespace MonoPipeSharp
         /// False = x32. True = x64;
         /// </summary>
         public static bool Is64Bit = false;
-
+        public static Encoding defaultEncoding = Encoding.UTF8;
 
         public const byte MONOCMD_INITMONO = 0;
         public const byte MONOCMD_OBJECT_GETCLASS = 1;
@@ -64,9 +64,9 @@ namespace MonoPipeSharp
         public const byte MONOCMD_ISCLASSGENERIC = 37;
         public const byte MONOCMD_ISIL2CPP = 38;
         public const byte MONOCMD_FILLOPTIONALFUNCTIONLIST = 39;
-        public const byte MONOCMD_GETconstFIELDVALUE = 40;
+        public const byte MONOCMD_GET_STATIC_FIELDVALUE = 40;
         //fallback for il2cpp which doesn't expose what's needed;
-        public const byte MONOCMD_SETconstFIELDVALUE = 41;
+        public const byte MONOCMD_SET_STATIC_FIELDVALUE = 41;
         public const byte MONOCMD_GETCLASSIMAGE = 42;
         public const byte MONOCMD_FREE = 43;
         public const byte MONOCMD_GETIMAGEFILENAME = 44;
@@ -75,57 +75,54 @@ namespace MonoPipeSharp
 
         public static Process theproc;
         public static NamedPipeClientStream monopipe;
-        public static List<Domain> domains;
-
-        public static Domain currentDomain;
-
-
-
-        public static IntPtr monoBase;
+        public static long monoBase;
+        public static UInt64 currentDomain;
 
         public static bool pipe_init(Process p)
         {
             theproc = p;
             int targetProcID = theproc.Id;
-            domains = new List<Domain>();
             monopipe = new NamedPipeClientStream("cemonodc_pid" + targetProcID.ToString());
             monopipe.Connect();
             if (monopipe.CanWrite)
             {
                 WriteByte(MONOCMD_INITMONO);
-                monoBase = (IntPtr)ReadQword();
+                monoBase = ReadQword();
                 return true;
             }
             return false;
         }
 
-
-        public static bool pipe_get_domains()
+        public static bool pipe_procIl2cpp()
         {
+            WriteByte(MONOCMD_ISIL2CPP);
+            bool result = (ReadByte() == 1);
+            return result;
+        }
+
+        public static List<UInt64> pipe_get_domains()
+        {
+            List<UInt64> temp = new List<UInt64>();
             if (monopipe.CanWrite)
             {
                 WriteByte(MONOCMD_ENUMDOMAINS);
-
                 int domainsCount = ReadDword();
-
-                domains.Clear();
                 for (int i = 0; i < domainsCount; i++)
                 {
                     UInt64 domain = (UInt64)ReadQword();
-                    domains.Add(new Domain(domain));
+                    temp.Add(domain);
                 }
-                return true;
             }
-            return false;
+            return temp;
         }
 
-        public static bool pipe_set_domain(Domain domain)
+        public static bool pipe_set_domain(UInt64 domain)
         {
             if (monopipe.CanWrite)
             {
                 currentDomain = domain;
                 WriteByte(MONOCMD_SETCURRENTDOMAIN);
-                WriteQword(domain.pointer);
+                WriteQword(domain);
                 var result = ReadDword();
                 return true;
             }
@@ -133,8 +130,12 @@ namespace MonoPipeSharp
         }
 
 
-        public static bool pipe_domain_get_assemblies()
+
+
+
+        public static List<UInt64> pipe_domain_get_assemblies()
         {
+            List<UInt64> temp = new List<UInt64>();   
             if (monopipe.CanWrite)
             {
                 WriteByte(MONOCMD_ENUMASSEMBLIES);
@@ -143,13 +144,37 @@ namespace MonoPipeSharp
                 for (int i = 0; i < assembliesCount; i++)
                 {
                     UInt64 assembly = (UInt64)ReadQword();
-                    currentDomain.assemblies.Add(new Assembly(assembly));
+                    temp.Add(assembly);
                 }
-
-                return true;
             }
-            return false;
+            return temp;
         }
+
+        public static string pipe_image_get_name(UInt64 image)
+        {
+            if (monopipe.CanWrite)
+            {
+                WriteByte(MONOCMD_GETIMAGEFILENAME);
+                WriteQword(image);
+                int length = ReadWord();
+                return ReadString(length);
+            }
+            return "NIL";
+        }
+
+
+
+        public static Int64 pipe_assembly_get_image(UInt64 assembly)
+        {
+            if (monopipe.CanWrite)
+            {
+                WriteByte(MONOCMD_GETIMAGEFROMASSEMBLY);
+                WriteQword(assembly);
+                return ReadQword();
+            }
+            return 0;
+        }
+
 
 
 
@@ -157,6 +182,19 @@ namespace MonoPipeSharp
 
 
         //Reads:
+
+        public static int ReadByte()
+        {
+            return monopipe.ReadByte();
+        }
+
+
+        public static int ReadWord()
+        {
+            byte[] dword = new byte[2];
+            int bytesRead = monopipe.Read(dword, 0, 2);
+            return BitConverter.ToInt16(dword, 0);
+        }
 
         public static Int32 ReadDword()
         {
@@ -172,12 +210,14 @@ namespace MonoPipeSharp
             return (Int64)BitConverter.ToInt64(qword,0);
         }
 
-        public static MString ReadString() //NOT TESTED
+        public static string ReadString(int length)
         {
-            int length = ReadDword(); //length of the string
-            IntPtr ptr = (IntPtr)ReadQword(); //Pointer to the string (i think) (not tested)
-            return new MString(ptr,length);
+            byte[] chars = new byte[length];
+            monopipe.Read(chars,0,length);
+            return Encoding.ASCII.GetString(chars);
         }
+
+
 
         //Writes:
 
