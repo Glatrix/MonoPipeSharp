@@ -25,9 +25,9 @@ Exmaple Usage:
             var isIl2 = MonoPipe.pipe_isIl2cpp();
 
             Console.WriteLine(p.ProcessName + (isIl2 ? " ~IL2CPP":" ~MONO"));
-            //Console.WriteLine($"Inject: {(injected ? "Success!" : "Failed :(")}");
-            //Console.WriteLine($"Mono Init: {(initresult ? "Success!" : "Failed :(")}");
-            //Console.WriteLine($"Domain Set: {(initresult ? "Success!" : "Failed :(")}");
+            //Console.WriteLine($"Inject: {(injected ? "Success!" : "Failed")}");
+            //Console.WriteLine($"Mono Init: {(initresult ? "Success!" : "Failed")}");
+            //Console.WriteLine($"Domain Set: {(initresult ? "Success!" : "Failed")}");
             Console.WriteLine($"{domainsList.Count} Domain(s) Found.");
             Console.WriteLine($"{assembliesList.Count} Assemblies Found in default domain [0].\n\n");
 
