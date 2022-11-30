@@ -3,6 +3,7 @@
 - Credit to Dark Byte, and Cheat Engine for the MonoDataCollector dlls.
 
 - Wanna Collaborate or have questions? add me on Discord: Glatriix#8936
+- https://discord.gg/X9gdzuJBAZ
 
 # MonoPipeSharp
 C# Implimentation for Cheat Engine's MonoDataCollector
